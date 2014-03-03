@@ -22,36 +22,37 @@ import org.dcache.xdr.portmap.OncRpcEmbeddedPortmap;
 
 public class Main {
 	public static void main(String[] args) throws IOException, OncRpcException, InterruptedException {
-		URL exports = Main.class.getClassLoader().getResource(
-				"doss/nfs/exports");
-		if (exports == null) {
-			throw new RuntimeException(
-					"doss/nfs/exports not found on classpath");
-		}
+		// virtual file system
 		VirtualFileSystem fs = new BlobStoreVFS();
-		ExportFile exportFile = new ExportFile(exports);
 		
-		// NFS 3
-		NfsServerV3 nfs3 = new NfsServerV3(exportFile, fs);
+		// exports config file
+		URL exportsUrl = Main.class.getClassLoader().getResource("doss/nfs/exports");
+		if (exportsUrl == null) {
+			throw new RuntimeException("doss/nfs/exports not found on classpath");
+		}
+		ExportFile exports = new ExportFile(exportsUrl);
 		
-		// NFS 4
+		// NFS 4 server
 		MDSOperationFactory opfac = new MDSOperationFactory();
 		NfsIdMapping idMap = new SimpleIdMap();
+		NFSServerV41 nfs4 = new NFSServerV41(opfac, null, fs, idMap, exports);
 		
-		NFSServerV41 nfs4 = new NFSServerV41(opfac, null, fs, idMap, exportFile);
-		
-		MountServer mountd = new MountServer(exportFile, fs);
+		// mountd
+		MountServer mountd = new MountServer(exports, fs);
 
-		OncRpcSvc rpcSvc = new OncRpcSvcBuilder().withPort(1234).withTCP()
-				.build();
+		// RPC server
+		OncRpcSvc rpcSvc = new OncRpcSvcBuilder().withPort(1234).withTCP().build();
 		Map<OncRpcProgram, RpcDispatchable> services = new HashMap<>();
-		
-		rpcSvc.register(new OncRpcProgram(100003, 3), nfs3);
 		rpcSvc.register(new OncRpcProgram(100003, 4), nfs4);
 		rpcSvc.register(new OncRpcProgram(100005, 3), mountd);
-		
 		rpcSvc.setPrograms(services );
 		rpcSvc.start();
-		Thread.sleep(100000);
+		
+		try {
+			// hang around for a while
+			Thread.sleep(100000);
+		} finally {
+			rpcSvc.stop();
+		}
 	}
 }
