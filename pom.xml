@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>au.gov.nla</groupId>
@@ -45,6 +46,15 @@
             </manifest>
           </archive>
         </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
@@ -73,7 +83,8 @@
     </plugins>
     <pluginManagement>
       <plugins>
-        <!--Tells M2Eclipse to stop needlessly worrying. It has no influence on the Maven build itself. -->
+        <!--Tells M2Eclipse to stop needlessly worrying. It has no influence 
+          on the Maven build itself. -->
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
           <artifactId>lifecycle-mapping</artifactId>
@@ -122,9 +133,9 @@
       <version>${pom.version}</version>
     </dependency>
     <dependency>
-   	  <groupId>org.dcache</groupId>
-   	  <artifactId>nfs4j-core</artifactId>
-   	  <version>0.8.0-SNAPSHOT</version>
+      <groupId>org.dcache</groupId>
+      <artifactId>nfs4j-core</artifactId>
+      <version>0.8.0-20140313.022122-1</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -133,18 +144,23 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-    	<groupId>org.slf4j</groupId>
-    	<artifactId>slf4j-simple</artifactId>
-    	<version>1.7.6</version>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.6</version>
     </dependency>
   </dependencies>
-  
+
   <repositories>
-  	<repository>
-  		<id>dcache-releases</id>
-  		<name>dcache.org releases</name>
-  		<url>http://download.dcache.org/nexus/content/repositories/releases/</url>
-  	</repository>
+    <!-- <repository> <id>dcache-releases</id> <name>dcache.org releases</name> 
+      <url>http://download.dcache.org/nexus/content/repositories/releases/</url> 
+      </repository> -->
+    <!-- Temporarily using our own snapshot build of nfs4j until 0.8.0 is 
+      released -->
+    <repository>
+      <id>nla-public-snapshots</id>
+      <name>NLA snapshots</name>
+      <url>http://maven.nla.gov.au/snapshots/</url>
+    </repository>
   </repositories>
 
   <distributionManagement>

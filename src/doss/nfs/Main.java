@@ -30,16 +30,17 @@ import sun.misc.*;
 public class Main {
 	public static void main(String[] args) throws IOException, OncRpcException,
 			InterruptedException {
-		if (args.length < 2) {
-			System.err.println("Usage: doss-nfsd blobstore-path exports-file");
+		if (args.length < 3) {
+			System.err.println("Usage: port doss-nfsd blobstore-path exports-file");
 			System.err.println("");
 			System.err.println("The exports file is the same format as /etc/exports.  Use / as the path.");
 			System.err.println("You can send SIGHUP to reload it without restarting.");
 			System.exit(1);
 		}
 		
-		String blobStorePath = args[0];
-		String exportsFilePath = args[1];
+		int port = Integer.parseInt(args[0]);
+		String blobStorePath = args[1];
+		String exportsFilePath = args[2];
 
 		try (BlobStore blobStore = LocalBlobStore.open(Paths.get(blobStorePath))) {
 
@@ -66,7 +67,7 @@ public class Main {
 			MountServer mountd = new MountServer(exports, fs);
 
 			// RPC server
-			OncRpcSvc rpcSvc = new OncRpcSvcBuilder().withPort(1234).withTCP()
+			OncRpcSvc rpcSvc = new OncRpcSvcBuilder().withPort(port).withTCP()
 					.build();
 			Map<OncRpcProgram, RpcDispatchable> services = new HashMap<>();
 			rpcSvc.register(new OncRpcProgram(100003, 4), nfs4);
