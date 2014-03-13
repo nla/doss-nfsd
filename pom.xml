@@ -151,9 +151,11 @@
   </dependencies>
 
   <repositories>
-    <!-- <repository> <id>dcache-releases</id> <name>dcache.org releases</name> 
-      <url>http://download.dcache.org/nexus/content/repositories/releases/</url> 
-      </repository> -->
+    <repository>
+      <id>dcache-releases</id>
+      <name>dcache.org releases</name>
+      <url>http://download.dcache.org/nexus/content/repositories/releases/</url>
+    </repository>
     <!-- Temporarily using our own snapshot build of nfs4j until 0.8.0 is 
       released -->
     <repository>
