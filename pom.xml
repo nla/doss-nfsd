@@ -11,7 +11,7 @@
 
   <scm>
     <developerConnection>scm:git:ssh://git@github.com/nla/doss-nfsd.git</developerConnection>
-    <tag>0.23.8</tag>
+    <tag>0.26.1</tag>
   </scm>
 
   <build>
