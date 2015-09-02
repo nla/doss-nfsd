@@ -22,11 +22,11 @@ import org.dcache.nfs.vfs.Stat.Type;
 import org.dcache.nfs.vfs.AclCheckable;
 import org.dcache.nfs.v4.NfsIdMapping;
 import org.dcache.nfs.v4.SimpleIdMap;
+import org.dcache.nfs.status.*;
 
 import doss.Blob;
 import doss.BlobStore;
 import doss.NoSuchBlobException;
-import doss.nfs.DossNFSException;
 
 import static org.dcache.nfs.v4.xdr.nfs4_prot.*;
 
@@ -101,7 +101,7 @@ public class BlobStoreVFS implements VirtualFileSystem {
                         stat.setGeneration(1);
 			Blob blob = inodeToBlob(inode);
 			if (blob == null) {
-				throw new DossNFSException(nfsstat.NFSERR_NOENT, "no such blob");
+				throw new NoEntException("no such blob");
 			}
 			stat.setSize(blob.size());
 			stat.setMTime(blob.created().toMillis());
@@ -127,24 +127,24 @@ public class BlobStoreVFS implements VirtualFileSystem {
 			System.out.println("bad blobid2 " + path + " .. " + parentInode
 					+ " vs " + rootInode);
 			// we don't support directories except for the root
-			throw new DossNFSException(nfsstat.NFSERR_NOENT, "not found");
+			throw new NoEntException("not found");
 		}
 		if (path.equals("README")) {
 			return toInode("/README");
 		}
 		Long blobId = pathToBlobId(path);
 		if (blobId == null) {
-			throw new DossNFSException(nfsstat.NFSERR_NOENT, "bad blobId");
+			throw new NoEntException("bad blobId");
 		}
 		try {
 			blobStore.get(blobId);
 		} catch (NoSuchBlobException e) {
-			throw new DossNFSException(nfsstat.NFSERR_NOENT, "no such blob");
+			throw new NoEntException("no such blob");
 		}
 		return toInode(BLOB_PREFIX + blobId);
 	}
 
-	private Long pathToBlobId(String path) throws DossNFSException {
+	private Long pathToBlobId(String path) throws IOException {
 		int dotPos = path.indexOf(".");
 		String id;
 		if (dotPos >= 0) {
@@ -185,7 +185,7 @@ public class BlobStoreVFS implements VirtualFileSystem {
 	@Override
 	public Inode parentOf(Inode inode) throws IOException {
 		if (inode == rootInode) {
-			throw new DossNFSException(nfsstat.NFSERR_NOENT, "no parent");
+			throw new NoEntException("no parent");
 		}
 		return rootInode;
 	}
@@ -233,72 +233,55 @@ public class BlobStoreVFS implements VirtualFileSystem {
 
 	@Override
 	public String readlink(Inode arg0) throws IOException {
-		throw new DossNFSException(nfsstat.NFSERR_INVAL,
-				"not a symbolic link");
+		throw new InvalException("not a symbolic link");
 	}
 
 	@Override
-        public Inode mkdir(Inode parent, String path, Subject subject, int mode)
-			throws IOException {
-		throw new DossNFSException(nfsstat.NFSERR_ROFS,
-				"doss-nfsd does not support writing");
+        public Inode mkdir(Inode parent, String path, Subject subject, int mode) throws IOException {
+                throw new RoFsException("doss-nfsd does not support writing");
 	}
 
 	@Override
-	public boolean move(Inode arg0, String arg1, Inode arg2, String arg3)
-			throws IOException {
-		throw new DossNFSException(nfsstat.NFSERR_ROFS,
-				"doss-nfsd does not support writing");
+	public boolean move(Inode arg0, String arg1, Inode arg2, String arg3) throws IOException {
+                throw new RoFsException("doss-nfsd does not support writing");
 	}
 
 	@Override
-        public Inode link(Inode parent, Inode link, String path, Subject subject)
-                        throws IOException {
-		throw new DossNFSException(nfsstat.NFSERR_ROFS,
-				"doss-nfsd does not support writing");
+        public Inode link(Inode parent, Inode link, String path, Subject subject) throws IOException {
+                throw new RoFsException("doss-nfsd does not support writing");
 	}
 
 	@Override
-        public Inode create(Inode parent, Stat.Type type, String path, Subject subject,
-                        int mode) throws IOException {
-		throw new DossNFSException(nfsstat.NFSERR_ROFS,
-				"doss-nfsd does not support writing");
+        public Inode create(Inode parent, Stat.Type type, String path, Subject subject, int mode) throws IOException {
+                throw new RoFsException("doss-nfsd does not support writing");
 	}
 
 	@Override
 	public void remove(Inode arg0, String arg1) throws IOException {
-		throw new DossNFSException(nfsstat.NFSERR_ROFS,
-				"doss-nfsd does not support writing");
+                throw new RoFsException("doss-nfsd does not support writing");
 	}
 
 	@Override
 	public void setAcl(Inode arg0, nfsace4[] arg1) throws IOException {
-		throw new DossNFSException(nfsstat.NFSERR_ROFS,
-				"doss-nfsd does not support writing");
+                throw new RoFsException("doss-nfsd does not support writing");
 	}
 
 	@Override
 	public void setattr(Inode arg0, Stat arg1) throws IOException {
-		throw new DossNFSException(nfsstat.NFSERR_ROFS,
-				"doss-nfsd does not support writing");
+                throw new RoFsException("doss-nfsd does not support writing");
 	}
 
 	@Override
-        public Inode symlink(Inode parent, String path, String link, Subject subject,
-                        int mode) throws IOException {
-		throw new DossNFSException(nfsstat.NFSERR_ROFS,
-				"doss-nfsd does not support writing");
+        public Inode symlink(Inode parent, String path, String link, Subject subject, int mode) throws IOException {
+                throw new RoFsException("doss-nfsd does not support writing");
 	}
 
 	@Override
-        public WriteResult write(Inode inode, byte[] data, long offset, int count,
-                        StabilityLevel stabilityLevel) throws IOException {
-		throw new DossNFSException(nfsstat.NFSERR_ROFS,
-				"doss-nfsd does not support writing");
+        public WriteResult write(Inode inode, byte[] data, long offset, int count, StabilityLevel stabilityLevel) throws IOException {
+                throw new RoFsException("doss-nfsd does not support writing");
 	}
         @Override
         public void commit(Inode inode, long offset, int count) throws IOException {
-               throw new DossNFSException(nfsstat.NFSERR_ROFS,
-                                "doss-nfsd does not support writing");
+                throw new RoFsException("doss-nfsd does not support writing");
         }
 }
