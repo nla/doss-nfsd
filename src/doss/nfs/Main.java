@@ -52,7 +52,6 @@ public class Main {
 			// NFS 4 server
 			DeviceManager devManager = new DeviceManager();
 			MDSOperationFactory opfac = new MDSOperationFactory();
-			//NfsIdMapping idMap = new SimpleIdMap();
 			NFSServerV41 nfs4 = new NFSServerV41(opfac, devManager, fs,
 					exports);
 
