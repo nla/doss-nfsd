@@ -4,7 +4,7 @@
 
   <groupId>au.gov.nla</groupId>
   <artifactId>doss-nfsd</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.5-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>doss-nfsd</name>
@@ -135,7 +135,12 @@
     <dependency>
       <groupId>org.dcache</groupId>
       <artifactId>nfs4j-core</artifactId>
-      <version>0.8.0-20140313.022122-1</version>
+      <version>0.11.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.dcache.chimera</groupId>
+      <artifactId>chimera-core</artifactId>
+      <version>0.0.9</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>

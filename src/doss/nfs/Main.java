@@ -2,8 +2,6 @@ package doss.nfs;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,19 +46,13 @@ public class Main {
 			VirtualFileSystem fs = new BlobStoreVFS(blobStore);
 
 			// exports config file			
-			ExportFile exports;
-			try {
-				exports = new ExportFile(new URL(exportsFilePath));
-			} catch (MalformedURLException e) {
-				exports = new ExportFile(new File(exportsFilePath));
-			}
+			ExportFile exports = new ExportFile(new File(exportsFilePath));
 			registerSignalHandler(exports);
 
 			// NFS 4 server
 			DeviceManager devManager = new DeviceManager();
 			MDSOperationFactory opfac = new MDSOperationFactory();
-			NfsIdMapping idMap = new SimpleIdMap();
-			NFSServerV41 nfs4 = new NFSServerV41(opfac, devManager, fs, idMap,
+			NFSServerV41 nfs4 = new NFSServerV41(opfac, devManager, fs,
 					exports);
 
 			// mountd
