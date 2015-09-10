@@ -77,28 +77,27 @@ public class BlobStoreVFS implements VirtualFileSystem {
 		stat.setGid(0);
 		stat.setUid(0);
 		stat.setNlink(1);
+		long now = System.currentTimeMillis();
 		if ("/".equals(path)) {
 			stat.setMode(0555 | UnixPermission.S_IFDIR);
-                        stat.setGeneration(0);
 			stat.setSize(0);
-			long now = System.currentTimeMillis();
 			stat.setATime(now);
 			stat.setMTime(now);
 			stat.setCTime(now);
 			stat.setIno(0);
 			stat.setFileid(0);
+                        stat.setGeneration(now);
 		} else if ("/README".equals(path)) {
 			stat.setMode(0444 | UnixPermission.S_IFREG);
-                        stat.setGeneration(0);
 			stat.setSize(README_TEXT.length);
 			stat.setATime(1393987443000L);
 			stat.setMTime(1393987443000L);
 			stat.setCTime(1393987443000L);
-			stat.setIno(-1);
-			stat.setFileid(-1);			
+			stat.setIno(1);
+			stat.setFileid(1);			
+                        stat.setGeneration(now);
 		} else {
 			stat.setMode(0444 | UnixPermission.S_IFREG);
-                        stat.setGeneration(0);
 			Blob blob = inodeToBlob(inode);
 			if (blob == null) {
 				throw new NoEntException("no such blob");
@@ -109,6 +108,7 @@ public class BlobStoreVFS implements VirtualFileSystem {
 			stat.setATime(blob.created().toMillis());
 			stat.setIno((int)blob.id());
 			stat.setFileid(blob.id());
+                        stat.setGeneration(blob.created().toMillis());
 		}		
 		return stat;
 	}

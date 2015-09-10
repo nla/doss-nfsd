@@ -8,6 +8,9 @@ import java.util.Map;
 
 import org.dcache.nfs.ExportFile;
 import org.dcache.nfs.v3.MountServer;
+import org.dcache.nfs.v3.xdr.mount_prot;
+import org.dcache.nfs.v3.xdr.nfs3_prot;
+import org.dcache.nfs.v4.xdr.nfs4_prot;
 import org.dcache.nfs.v4.DeviceManager;
 import org.dcache.nfs.v4.MDSOperationFactory;
 import org.dcache.nfs.v4.NFSServerV41;
@@ -59,12 +62,12 @@ public class Main {
 			MountServer mountd = new MountServer(exports, fs);
 
 			// RPC server
-			OncRpcSvc rpcSvc = new OncRpcSvcBuilder().withPort(port).withTCP()
+			OncRpcSvc rpcSvc = new OncRpcSvcBuilder().withPort(port).withTCP().withAutoPublish().withSameThreadIoStrategy()
 					.build();
 			Map<OncRpcProgram, RpcDispatchable> services = new HashMap<>();
-			rpcSvc.register(new OncRpcProgram(100003, 4), nfs4);
-			rpcSvc.register(new OncRpcProgram(100005, 3), mountd);
-			rpcSvc.setPrograms(services);
+			rpcSvc.register(new OncRpcProgram(nfs4_prot.NFS4_PROGRAM, nfs4_prot.NFS_V4), nfs4);
+			rpcSvc.register(new OncRpcProgram(mount_prot.MOUNT_PROGRAM, mount_prot.MOUNT_V3), mountd);
+			//rpcSvc.setPrograms(services);
 			rpcSvc.start();
 
 			try {
