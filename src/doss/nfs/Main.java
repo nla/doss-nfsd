@@ -1,32 +1,31 @@
 package doss.nfs;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.dcache.nfs.ExportFile;
-import org.dcache.nfs.v3.MountServer;
-import org.dcache.nfs.v3.xdr.mount_prot;
-import org.dcache.nfs.v3.xdr.nfs3_prot;
-import org.dcache.nfs.v4.xdr.nfs4_prot;
-import org.dcache.nfs.v4.DeviceManager;
-import org.dcache.nfs.v4.MDSOperationFactory;
-import org.dcache.nfs.v4.NFSServerV41;
-import org.dcache.nfs.v4.NfsIdMapping;
-import org.dcache.nfs.v4.SimpleIdMap;
-import org.dcache.nfs.vfs.VirtualFileSystem;
-import org.dcache.xdr.OncRpcException;
-import org.dcache.xdr.OncRpcProgram;
-import org.dcache.xdr.OncRpcSvc;
-import org.dcache.xdr.OncRpcSvcBuilder;
-import org.dcache.xdr.RpcDispatchable;
-
 import doss.BlobStore;
 import doss.local.LocalBlobStore;
+import org.dcache.nfs.ExportFile;
+import org.dcache.nfs.status.BadSeqidException;
+import org.dcache.nfs.v3.MountServer;
+import org.dcache.nfs.v3.xdr.mount_prot;
+import org.dcache.nfs.v4.*;
+import org.dcache.nfs.v4.xdr.nfs4_prot;
+import org.dcache.nfs.v4.xdr.seqid4;
+import org.dcache.nfs.v4.xdr.verifier4;
+import org.dcache.nfs.vfs.VirtualFileSystem;
+import org.dcache.xdr.*;
+import sun.misc.Signal;
+import sun.misc.SignalHandler;
 
-import sun.misc.*;
+import java.io.File;
+import java.io.IOException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.nio.file.Paths;
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Main {
 	public static void main(String[] args) throws IOException, OncRpcException,
@@ -55,8 +54,8 @@ public class Main {
 			// NFS 4 server
 			DeviceManager devManager = new DeviceManager();
 			MDSOperationFactory opfac = new MDSOperationFactory();
-			NFSServerV41 nfs4 = new NFSServerV41(opfac, devManager, fs,
-					exports);
+			NFSServerV41 nfs4 = new NFSServerV41(opfac, devManager, fs,	exports);
+			monkeyPatchSeqidValidation(nfs4);
 
 			// mountd
 			MountServer mountd = new MountServer(exports, fs);
@@ -78,6 +77,75 @@ public class Main {
 			} finally {
 				rpcSvc.stop();
 			}
+		}
+	}
+
+	/**
+	 * nfs4j upstream keep breaking seqid validation.  Most recently (at time of writing) in:
+	 *
+	 * https://github.com/dCache/nfs4j/commit/e98a227171fff6cd37cc6f4704ede4f9e539bdb5
+	 *
+	 * As far as I can tell seqids should be associated with an NFS state not with the client. At least that's what
+	 * Linux and Solaris NFS 4.0 clients are assuming.  The problem is easy to reproduce.  Mount on a Linux or Solaris
+	 * box and try to access a file as two differnt users, the first will work, the second will hang and eventually
+	 * error.
+	 *
+	 * For our use case seqid validation is not important so lets monkey patch it out for now until nfs4j gets fixed.
+	 *
+	 */
+	static void monkeyPatchSeqidValidation(NFSServerV41 server) {
+		try {
+			Field f = NFSServerV41.class.getDeclaredField("_statHandler");
+			f.setAccessible(true);
+			f.set(server, new PatchedStateHandler());
+		} catch (NoSuchFieldException | IllegalAccessException e) {
+			throw new RuntimeException("monkey patching failed", e);
+		}
+	}
+
+	static class PatchedStateHandler extends NFSv4StateHandler {
+		static MethodHandle addClientMethod, nextClientIdMethod, leaseTimeGetter;
+
+		static {
+			try {
+				Method m = NFSv4StateHandler.class.getDeclaredMethod("addClient", NFS4Client.class);
+				m.setAccessible(true);
+				addClientMethod = MethodHandles.lookup().unreflect(m);
+
+				m = NFSv4StateHandler.class.getDeclaredMethod("nextClientId");
+				m.setAccessible(true);
+				nextClientIdMethod = MethodHandles.lookup().unreflect(m);
+
+				Field f = NFSv4StateHandler.class.getDeclaredField("_leaseTime");
+				f.setAccessible(true);
+				leaseTimeGetter = MethodHandles.lookup().unreflectGetter(f);
+
+			} catch (NoSuchMethodException | NoSuchFieldException | IllegalAccessException e) {
+				throw new RuntimeException("monkey patching failed", e);
+			}
+		}
+
+		@Override
+		public NFS4Client createClient(InetSocketAddress clientAddress, InetSocketAddress localAddress, int minorVersion, byte[] ownerID, verifier4 verifier, Principal principal, boolean callbackNeeded) {
+			try {
+				NFS4Client client = new PatchedClient((Long)nextClientIdMethod.invoke(this), minorVersion, clientAddress, localAddress, ownerID, verifier, principal, (Long)leaseTimeGetter.invoke(this), callbackNeeded);
+				addClientMethod.invoke(this, client);
+				return client;
+			} catch (Throwable throwable) {
+				throw new RuntimeException(throwable);
+			}
+
+		}
+	}
+
+	static class PatchedClient extends NFS4Client {
+		public PatchedClient(long clientId, int minorVersion, InetSocketAddress clientAddress, InetSocketAddress localAddress, byte[] ownerID, verifier4 verifier, Principal principal, long leaseTime, boolean calbackNeeded) {
+			super(clientId, minorVersion, clientAddress, localAddress, ownerID, verifier, principal, leaseTime, calbackNeeded);
+		}
+
+		@Override
+		public synchronized void validateSequence(seqid4 openSeqid) throws BadSeqidException {
+			// disabled
 		}
 	}
 
