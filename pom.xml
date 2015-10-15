@@ -130,7 +130,7 @@
     <dependency>
       <groupId>au.gov.nla</groupId>
       <artifactId>doss</artifactId>
-      <version>${pom.version}</version>
+      <version>1.0.6</version>
     </dependency>
     <dependency>
       <groupId>org.dcache</groupId>
@@ -160,25 +160,35 @@
       <id>dcache-releases</id>
       <name>dcache.org releases</name>
       <url>http://download.dcache.org/nexus/content/repositories/releases/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
     </repository>
-    <!-- Temporarily using our own snapshot build of nfs4j until 0.8.0 is 
-      released -->
+    <repository>
+      <id>nla-public-releases</id>
+      <name>NLA releases</name>
+      <url>http://maven.nla.gov.au/releases/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+     </repository>
     <repository>
       <id>nla-public-snapshots</id>
       <name>NLA snapshots</name>
       <url>http://maven.nla.gov.au/snapshots/</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
     </repository>
   </repositories>
-
-  <distributionManagement>
-    <repository>
-      <id>nla-public-releases</id>
-      <url>scpexe://spitfire.nla.gov.au/www/prod/maven/htdocs/releases</url>
-    </repository>
-    <snapshotRepository>
-      <id>nla-public-snapshots</id>
-      <url>scpexe://spitfire.nla.gov.au/www/prod/maven/htdocs/snapshots</url>
-    </snapshotRepository>
-  </distributionManagement>
 
 </project>
