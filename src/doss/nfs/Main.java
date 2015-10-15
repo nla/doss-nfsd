@@ -2,6 +2,7 @@ package doss.nfs;
 
 import doss.BlobStore;
 import doss.local.LocalBlobStore;
+import org.dcache.nfs.ChimeraNFSException;
 import org.dcache.nfs.ExportFile;
 import org.dcache.nfs.status.BadSeqidException;
 import org.dcache.nfs.v3.MountServer;
@@ -9,6 +10,7 @@ import org.dcache.nfs.v3.xdr.mount_prot;
 import org.dcache.nfs.v4.*;
 import org.dcache.nfs.v4.xdr.nfs4_prot;
 import org.dcache.nfs.v4.xdr.seqid4;
+import org.dcache.nfs.v4.xdr.stateid4;
 import org.dcache.nfs.v4.xdr.verifier4;
 import org.dcache.nfs.vfs.VirtualFileSystem;
 import org.dcache.xdr.*;
@@ -139,8 +141,43 @@ public class Main {
 	}
 
 	static class PatchedClient extends NFS4Client {
+		static MethodHandle clientStatesGetter;
+
+		static {
+			try {
+				Field f = NFS4Client.class.getDeclaredField("_clientStates");
+				f.setAccessible(true);
+				clientStatesGetter = MethodHandles.lookup().unreflectGetter(f);
+			} catch (IllegalAccessException | NoSuchFieldException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
 		public PatchedClient(long clientId, int minorVersion, InetSocketAddress clientAddress, InetSocketAddress localAddress, byte[] ownerID, verifier4 verifier, Principal principal, long leaseTime, boolean calbackNeeded) {
 			super(clientId, minorVersion, clientAddress, localAddress, ownerID, verifier, principal, leaseTime, calbackNeeded);
+		}
+
+		@Override
+		public NFS4State createState() throws ChimeraNFSException {
+			/*
+			 * The _clientState table slowly leaks over time as Linux clients sometimes send an OPEN without a
+			 * corresponding CLOSE.  In particular we've seen this when the process killed during the open() syscall.
+			 * As (another) dirty hack to keep things from breaking let's clear out the _clientStates just before it
+			 * fills up.
+			 */
+			try {
+				Map<stateid4, NFS4State> clientStates = (Map<stateid4, NFS4State>) clientStatesGetter.invoke(this);
+				if (clientStates.size() > 16000) {
+					for (stateid4 key : clientStates.keySet()) {
+						NFS4State state = clientStates.remove(key);
+						state.tryDispose();
+					}
+				}
+			} catch (Throwable throwable) {
+				throw new RuntimeException(throwable);
+			}
+
+			return super.createState();
 		}
 
 		@Override
